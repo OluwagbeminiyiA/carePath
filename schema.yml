@@ -1,0 +1,602 @@
+openapi: 3.0.3
+info:
+  title: carePath API
+  version: 1.0.0
+  description: Patient Queue Management API A robust DRF-based backend designed to
+    automate patient flow. It features dynamic queue re-ordering using django-lifecycle
+    hooks, real-time status tracking, and an automated Estimated Wait Time (EWT) algorithm
+    to improve patient experience and clinic efficiency.
+paths:
+  /api/drug/authenticate/:
+    post:
+      operationId: drug_authenticate_create
+      description: Analyze if a drug (uploaded as image) is authentic or fake using
+        AI. Requires multipart/form-data.
+      summary: Check drug authenticity from image
+      tags:
+      - drug
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                drug_image:
+                  type: string
+                  format: binary
+              required:
+              - drug_image
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrugAuthenticationResponse'
+          description: ''
+  /api/drug/check/:
+    post:
+      operationId: drug_check_create
+      description: Analyze if a drug (uploaded as image) is suitable for the given
+        symptoms using AI. Requires multipart/form-data.
+      summary: Check drug validity from image
+      tags:
+      - drug
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                drug_image:
+                  type: string
+                  format: binary
+                symptoms:
+                  type: string
+              required:
+              - drug_image
+              - symptoms
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrugCheckResponse'
+          description: ''
+  /api/hospital/{id}/:
+    get:
+      operationId: hospital_retrieve
+      description: Retrieve details of a specific hospital by ID.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - hospital
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hospital'
+          description: ''
+  /api/hospital/create/:
+    post:
+      operationId: hospital_create_create
+      description: Create a new hospital.
+      tags:
+      - hospital
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Hospital'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Hospital'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Hospital'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hospital'
+          description: ''
+  /api/hospitals/list/:
+    get:
+      operationId: hospitals_list_list
+      description: Retrieve a list of all hospitals.
+      tags:
+      - hospitals
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Hospital'
+          description: ''
+  /api/patient/{id}/:
+    get:
+      operationId: patient_retrieve
+      description: Retrieve details of a specific patient by ID.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - patient
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientDetail'
+          description: ''
+  /api/patient/create/:
+    post:
+      operationId: patient_create_create
+      description: Create a new patient.
+      tags:
+      - patient
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatientDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatientDetail'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientDetail'
+          description: ''
+  /api/patients/list/:
+    get:
+      operationId: patients_list_list
+      description: Retrieve a list of all patients.
+      tags:
+      - patients
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PatientDetail'
+          description: ''
+  /api/queue/find/{patient_id}/:
+    get:
+      operationId: queue_find_retrieve
+      description: Retrieve queue details for a specific patient.
+      parameters:
+      - in: path
+        name: patient_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - queue
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Queue'
+          description: ''
+  /api/queue/join/:
+    post:
+      operationId: queue_join_create
+      description: Join a hospital queue.
+      tags:
+      - queue
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinQueue'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/JoinQueue'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/JoinQueue'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JoinQueue'
+          description: ''
+  /api/queue/list/:
+    get:
+      operationId: queue_list_list
+      description: Retrieve a list of all queues.
+      tags:
+      - queue
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Queue'
+          description: ''
+  /api/queue/update/{patient_id}/:
+    put:
+      operationId: queue_update_update
+      description: Updates patient status and automatically decrements the queue position
+        of all following patients.
+      summary: Complete patient visit and shift queue
+      parameters:
+      - in: path
+        name: patient_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - queue
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueueUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/QueueUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/QueueUpdate'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueUpdate'
+          description: ''
+components:
+  schemas:
+    DrugAuthenticationResponse:
+      type: object
+      properties:
+        drug_identified:
+          type: string
+        is_authentic:
+          type: boolean
+        confidence:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+        explanation:
+          type: string
+      required:
+      - confidence
+      - drug_identified
+      - explanation
+      - is_authentic
+    DrugCheckResponse:
+      type: object
+      properties:
+        drug_identified:
+          type: string
+        is_suitable:
+          type: boolean
+        confidence:
+          type: number
+          format: double
+          maximum: 1.0
+          minimum: 0.0
+        explanation:
+          type: string
+      required:
+      - confidence
+      - drug_identified
+      - explanation
+      - is_suitable
+    Hospital:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        queue_count:
+          type: integer
+          readOnly: true
+        estimated_waiting_time:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+          maxLength: 100
+        city:
+          type: string
+          maxLength: 100
+        state:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone:
+          type: string
+          maxLength: 100
+        longitude:
+          type: number
+          format: double
+        latitude:
+          type: number
+          format: double
+      required:
+      - address
+      - city
+      - email
+      - estimated_waiting_time
+      - id
+      - latitude
+      - longitude
+      - name
+      - phone
+      - queue_count
+      - state
+    JoinQueue:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        queue_number:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        queue_status:
+          $ref: '#/components/schemas/QueueStatusEnum'
+        time_joined:
+          type: string
+          format: date-time
+          readOnly: true
+        patient:
+          type: integer
+        hospital:
+          type: integer
+      required:
+      - hospital
+      - id
+      - patient
+      - queue_number
+      - queue_status
+      - time_joined
+    PatientDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        hospital:
+          type: integer
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+          maxLength: 100
+        date_of_birth:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        patient_id:
+          type: string
+          maxLength: 100
+      required:
+      - address
+      - date_of_birth
+      - email
+      - first_name
+      - hospital
+      - id
+      - last_name
+      - phone
+      - status
+    PatientQueue:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+          maxLength: 100
+        date_of_birth:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        patient_id:
+          type: string
+          maxLength: 100
+      required:
+      - address
+      - date_of_birth
+      - email
+      - first_name
+      - id
+      - last_name
+      - phone
+      - status
+    Queue:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        hospital:
+          $ref: '#/components/schemas/Hospital'
+        patient:
+          $ref: '#/components/schemas/PatientQueue'
+        queue_number:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        queue_status:
+          $ref: '#/components/schemas/QueueStatusEnum'
+        time_joined:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - hospital
+      - id
+      - patient
+      - queue_number
+      - queue_status
+      - time_joined
+    QueueStatusEnum:
+      enum:
+      - WAITING
+      - CALLED
+      - COMPLETED
+      type: string
+      description: |-
+        * `WAITING` - waiting
+        * `CALLED` - Called
+        * `COMPLETED` - completed
+    QueueUpdate:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        queue_number:
+          type: integer
+          readOnly: true
+        queue_status:
+          $ref: '#/components/schemas/QueueStatusEnum'
+        time_joined:
+          type: string
+          format: date-time
+          readOnly: true
+        patient:
+          type: integer
+          readOnly: true
+        hospital:
+          type: integer
+          readOnly: true
+      required:
+      - hospital
+      - id
+      - patient
+      - queue_number
+      - queue_status
+      - time_joined
+    StatusEnum:
+      enum:
+      - NEW
+      - RETURNING
+      type: string
+      description: |-
+        * `NEW` - new
+        * `RETURNING` - returning
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

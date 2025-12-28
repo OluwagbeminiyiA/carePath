@@ -1,0 +1,72 @@
+[
+  {
+    "model": "api.hospital",
+    "pk": 6,
+    "fields": {
+      "name": "Lagos University Teaching Hospital (LUTH)",
+      "address": "Idi-Araba, Surulere",
+      "city": "Lagos",
+      "state": "Lagos",
+      "email": "info@luth.gov.ng",
+      "phone": "+234-1-271-5466",
+      "longitude": 3.3537,
+      "latitude": 6.5177
+    }
+  },
+  {
+    "model": "api.hospital",
+    "pk": 7,
+    "fields": {
+      "name": "Evercare Hospital Lekki",
+      "address": "1 Admiralty Way, Lekki Phase 1",
+      "city": "Lagos",
+      "state": "Lagos",
+      "email": "info@evercare.ng",
+      "phone": "+234-813-985-0710",
+      "longitude": 3.4572,
+      "latitude": 6.4377
+    }
+  },
+  {
+    "model": "api.hospital",
+    "pk": 8,
+    "fields": {
+      "name": "St. Nicholas Hospital",
+      "address": "57 Campbell Street, Lagos Island",
+      "city": "Lagos",
+      "state": "Lagos",
+      "email": "contact@saintnicholashospital.com",
+      "phone": "+234-802-290-8484",
+      "longitude": 3.3958,
+      "latitude": 6.4531
+    }
+  },
+  {
+    "model": "api.hospital",
+    "pk": 9,
+    "fields": {
+      "name": "Lagoon Hospital Ikoyi",
+      "address": "17B Bourdillon Road, Ikoyi",
+      "city": "Lagos",
+      "state": "Lagos",
+      "email": "info@lagoonhospitals.com",
+      "phone": "+234-708-639-3027",
+      "longitude": 3.4354,
+      "latitude": 6.4521
+    }
+  },
+  {
+    "model": "api.hospital",
+    "pk": 10,
+    "fields": {
+      "name": "Reddington Hospital",
+      "address": "12 Idowu Taylor St, Victoria Island",
+      "city": "Lagos",
+      "state": "Lagos",
+      "email": "info@reddingtonhospital.com",
+      "phone": "+234-1-271-5341",
+      "longitude": 3.4116,
+      "latitude": 6.4312
+    }
+  }
+]
