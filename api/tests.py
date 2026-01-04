@@ -4,10 +4,15 @@ from io import BytesIO
 from unittest.mock import patch, MagicMock
 
 from PIL import Image
+from channels.db import database_sync_to_async
+from channels.testing import WebsocketCommunicator
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.test import TestCase, override_settings, TransactionTestCase
+from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
+
+from carePath.asgi import application
 from .models import Hospital, Queue, Patient
 
 
@@ -150,12 +155,13 @@ class TestApi(TestCase):
         self.assertEqual(response.data['queue_status'], 'WAITING')
 
     def testJoinQueue(self):
-        response = self.client.post('/api/queue/join/',
+        response = self.client.post('/api/queue/join/1/',
                                     {
                                         'patient': self.patient2.id,
-                                        'hospital': self.hospital.id,
                                     }, format='json')
+        print(response.data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['hospital'], self.hospital.id)
         self.assertEqual(response.data['queue_number'], 2)
         self.assertEqual(response.data['queue_status'], 'WAITING')
         self.assertEqual(response.data['patient'], self.patient2.pk)
@@ -173,10 +179,9 @@ class TestApi(TestCase):
 
     def testSameQueueNumberWithDifferentHospital(self):
         response = self.client.post(
-            '/api/queue/join/',
+            f'/api/queue/join/{self.hospital2.id}/',
             {
                 'patient': self.patient3.id,
-                'hospital': self.hospital2.id,
                 'queue_status': 'WAITING'
             }, format='json'
         )
@@ -186,20 +191,18 @@ class TestApi(TestCase):
         self.assertEqual(response.data['patient'], self.patient3.pk)
 
     def testPatientWithMultipleQueueNumbers(self):
-        response = self.client.post("/api/queue/join/",
+        response = self.client.post(f"/api/queue/join/{self.hospital.id}/",
                                     {
                                         'patient': self.patient.id,
-                                        'hospital': self.hospital.id,
                                         'queue_status': 'WAITING',
                                     }, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data['error'], 'Patient already on Queue')
 
     def testPatientWithMultipleHospitalQueueNumbers(self):
-        response = self.client.post("/api/queue/join/",
+        response = self.client.post(f"/api/queue/join/{self.hospital2.id}/",
                                     {
                                         'patient': self.patient.id,
-                                        'hospital': self.hospital2.id,
                                         'queue_status': 'WAITING',
                                     }, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -346,3 +349,118 @@ class TestDrugAuthentication(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
         self.assertIn('error', response.data)
+
+
+class QueueIntegrationTest(TransactionTestCase):
+    def setUp(self):
+        self.hospital = Hospital.objects.create(
+            name="Hospital 1",
+            address="123 Main Street",
+            city="New York",
+            state="New York",
+            email="<EMAIL>",
+            phone="0123456789",
+            longitude=3.339844,
+            latitude=6.555475,
+        )
+
+        self.hospital2 = Hospital.objects.create(
+            name="Hospital 2",
+            address="123 Main Street",
+            city="New York",
+            state="New York",
+            email="hospital2@email.com",
+            phone="012345",
+            longitude=3.339844,
+            latitude=6.555475,
+        )
+
+        self.patient = Patient.objects.create(
+            first_name="Patient 1",
+            last_name="<NAME>",
+            email="<EMAIL>",
+            phone="0123456789",
+            address="123 Main Street",
+            date_of_birth=datetime.date(1999, 12, 25),
+            status="RETURNING",
+            hospital=self.hospital,
+        )
+
+        queue_number = Queue.objects.create(
+            patient=self.patient,
+            hospital=self.hospital,
+            queue_number=1,
+            queue_status='WAITING',
+
+        )
+
+        self.patient2 = Patient.objects.create(
+            first_name="Patient 2",
+            last_name="<NAME>",
+            email="email2@email.com",
+            phone="0123456789",
+            address="123 Main Street",
+            date_of_birth=datetime.date(1999, 12, 25),
+            status="RETURNING",
+            hospital=self.hospital,
+        )
+        self.patient3 = Patient.objects.create(
+            first_name="Patient 2",
+            last_name="<NAME>",
+            email="email3@email.com",
+            phone="01234567",
+            address="123 Main Street",
+            date_of_birth=datetime.date(1999, 12, 25),
+            status="RETURNING",
+            hospital=self.hospital,
+        )
+
+    async def test_websocket_receives_queue_update_on_post(self):
+        hospital_id = 1
+        communicator = WebsocketCommunicator(application, f"ws/queue/join/{hospital_id}/")
+
+        connected, _ = await communicator.connect()
+        self.assertTrue(connected)
+
+        def trigger_post():
+            client = APIClient()
+            url = reverse("join-queue", kwargs={'hospital_id': hospital_id})
+            payload = {
+                "patient": self.patient2.id
+            }
+            return client.post(url, data=payload, format='json')
+
+        response = await database_sync_to_async(trigger_post)()
+        # print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response_ws = await communicator.receive_from()
+        data = json.loads(response_ws)
+        # print(data)
+
+        self.assertEqual(data['new_queue_count'], 2)
+        await communicator.disconnect()
+
+    async def test_websocket_receives_queue_status_on_update(self):
+        hospital_id = 1
+        communicator = WebsocketCommunicator(application, f"ws/queue/update/{self.patient.id}/")
+        connected, _ = await communicator.connect()
+
+        self.assertTrue(connected)
+
+        def trigger_update():
+            client = APIClient()
+            url = reverse("update-queue", kwargs={'patient_id': self.patient.id})
+            payload = {
+                "queue_status": "CALLED"
+            }
+            return client.put(url, data=payload, format='json')
+
+        response = await database_sync_to_async(trigger_update)()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        response_ws = await communicator.receive_from()
+        data = json.loads(response_ws)
+
+        self.assertEqual(data['new_queue_status'], 'CALLED')
+        await communicator.disconnect()

@@ -40,6 +40,8 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
+    'daphne',
+    'channels',
     'rest_framework',
     'drf_spectacular',
     'drf_spectacular_sidecar',
@@ -48,7 +50,7 @@ THIRD_PARTY_APPS = [
 
 USER_APPS = ['api.apps.ApiConfig']
 
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + USER_APPS
+INSTALLED_APPS = THIRD_PARTY_APPS + DJANGO_APPS + USER_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -80,6 +82,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'carePath.wsgi.application'
+ASGI_APPLICATION = 'carePath.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
@@ -144,6 +147,14 @@ SPECTACULAR_SETTINGS = {
     'REDOC_DIST': 'SIDECAR',
 }
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        }
+    }
+}
 
 
 try:

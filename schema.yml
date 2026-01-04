@@ -235,10 +235,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/Queue'
           description: ''
-  /api/queue/join/:
+  /api/queue/join/{hospital_id}/:
     post:
       operationId: queue_join_create
       description: Join a hospital queue.
+      parameters:
+      - in: path
+        name: hospital_id
+        schema:
+          type: integer
+        required: true
       tags:
       - queue
       requestBody:

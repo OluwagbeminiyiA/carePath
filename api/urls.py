@@ -9,8 +9,8 @@ from .views import (
 urlpatterns = [
     path('queue/list/', QueueListView.as_view(), name='queue-list'),
     path('queue/find/<int:patient_id>/', QueueDetailForPatient.as_view(), name='queue-detail'),
-    path('queue/join/', JoinQueueView.as_view(), name='queue-create'),
-    path('queue/update/<int:patient_id>/', QueueUpdateView.as_view(), name='queue-update'),
+    path('queue/join/<int:hospital_id>/', JoinQueueView.as_view(), name='join-queue'),
+    path('queue/update/<int:patient_id>/', QueueUpdateView.as_view(), name='update-queue'),
     path('hospitals/list/', HospitalListView.as_view(), name='hospital-list'),
     path('hospital/create/', HospitalCreateView.as_view(), name='hospital-create'),
     path('hospital/<int:pk>/', HospitalDetailView.as_view(), name='hospital-detail'),

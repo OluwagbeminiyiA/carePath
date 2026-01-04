@@ -1,3 +1,4 @@
+from asgiref.sync import async_to_sync
 from django.db import transaction
 from django.db.models import Count, Q
 from django.utils.decorators import method_decorator
@@ -13,6 +14,7 @@ from .serializers import HospitalSerializer, QueueSerializer, PatientDetailSeria
     QueueUpdateSerializer, DrugCheckSerializer, DrugCheckResponseSerializer, DrugAuthenticationSerializer, \
     DrugAuthenticationResponseSerializer
 from .services import DrugValidityService, DrugAuthenticationService
+from channels.layers import get_channel_layer
 
 
 # Create your views here.
@@ -140,9 +142,9 @@ class JoinQueueView(APIView):
         methods=['POST'],
         description="Join a hospital queue."
     )
-    def post(self, request):
+    def post(self, request, hospital_id):
         # Auto-generate queue_number
-        hospital = request.data['hospital']
+        hospital = hospital_id
         patient = request.data['patient']
 
         if Queue.objects.filter(patient=patient).exists():
@@ -153,6 +155,7 @@ class JoinQueueView(APIView):
             new_queue_number = (last_queue.queue_number + 1) if last_queue else 1
 
             data = request.data
+            data['hospital'] = hospital
             data['queue_number'] = new_queue_number
 
             data['queue_status'] = 'WAITING'
@@ -160,6 +163,15 @@ class JoinQueueView(APIView):
             serializer = JoinQueueSerializer(data=data)
             if serializer.is_valid():
                 serializer.save()
+                current_queue_count = Queue.objects.filter(hospital_id=hospital, queue_status="WAITING").count()
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f"hospital_{hospital}",
+                    {
+                        "type": "queue_update",
+                        "count": current_queue_count,
+                    }
+                )
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
         print(serializer.errors.items())
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -179,6 +191,15 @@ class QueueUpdateView(APIView):
             serializer = QueueUpdateSerializer(queue, data=request.data)
             if serializer.is_valid():
                 serializer.save()
+                current_patient_status = Queue.objects.filter(patient=patient_id).last().queue_status
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f"patient_{patient_id}",
+                    {
+                        "type": "queue_status_update",
+                        "status": current_patient_status,
+                    }
+                )
                 return Response(serializer.data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
